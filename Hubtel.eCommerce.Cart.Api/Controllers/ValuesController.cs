@@ -62,7 +62,7 @@ namespace Hubtel.eCommerce.Cart.Api.Controllers
         [HttpGet("filter"), Route("GetAllCartItems")]
         public IEnumerable<ItemModel> GetAllCartItem([FromQuery]ItemFilter item)
         {
-            IEnumerable<ItemModel> allCartItems;
+            IEnumerable<ItemModel> allCartItems;//
             allCartItems = _shoppingCart.GetAllCartItem(item);
             return allCartItems;
         }
