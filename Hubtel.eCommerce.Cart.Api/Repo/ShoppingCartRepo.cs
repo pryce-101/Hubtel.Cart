@@ -32,14 +32,7 @@ namespace Hubtel.eCommerce.Cart.Api.Repo
            
             try
             {
-                //formValidate
-                if (!String.IsNullOrEmpty(ValidateFormEntry(item)))
-                {
-                   return operationStatus = ValidateFormEntry(item);
-                }
-                else
-                {
-               
+                             
                     using (var conn = new SqlConnection(connectionString))
                     {
                         conn.Open();
@@ -79,7 +72,6 @@ namespace Hubtel.eCommerce.Cart.Api.Repo
                         conn.Close();
                     }
 
-                }
             }
             catch (Exception ex)
             {
@@ -197,6 +189,31 @@ namespace Hubtel.eCommerce.Cart.Api.Repo
             return operationStatus;
         }
 
+        //get cart items list after item add
+        public IEnumerable<ItemModel> GetItemsAfterAdd(string phoneNumber)
+        {
+            IEnumerable<ItemModel> rows = null;
+
+            try
+            {
+                using (var connection = new SqlConnection(connectionString))
+                {
+                    var dynamicParams = new DynamicParameters();
+                    dynamicParams.Add("@PhoneNumber", phoneNumber);
+                    rows = connection.Query<ItemModel>("SELECT * FROM [Hubtel].[dbo].[CartItems] WHERE PhoneNumber = @PhoneNumber Order by Id DESC ",
+                                   dynamicParams, commandType: CommandType.Text);
+                }
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+
+            return rows;
+           
+        }
+
 
         //add item form validation
         public string ValidateFormEntry(ItemModel items)
@@ -250,5 +267,7 @@ namespace Hubtel.eCommerce.Cart.Api.Repo
             }
             return "";
         }
+
+      
     }
 }

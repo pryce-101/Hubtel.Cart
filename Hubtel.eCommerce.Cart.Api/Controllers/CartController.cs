@@ -10,10 +10,10 @@ namespace Hubtel.eCommerce.Cart.Api.Controllers
      
     [Route("api/[controller]")]
     [ApiController]
-    public class ValuesController : ControllerBase
+    public class CartController : ControllerBase
     {
         private readonly IShoppingCart _shoppingCart;
-        public ValuesController( IShoppingCart shopCart)
+        public CartController( IShoppingCart shopCart)
         {
             _shoppingCart = shopCart;
         }
@@ -29,15 +29,31 @@ namespace Hubtel.eCommerce.Cart.Api.Controllers
         [HttpPost,Route("AddItemToCart")]
         public ActionResult<string> AddItemToCart([FromBody] ItemModel item)
         {
-            string response = _shoppingCart.AddItemToCart(item);
-
-            if (response != String.Empty)
+            string response = "";
+            if (!String.IsNullOrEmpty(ValidateModel()))
             {
-                 return response;
+                return BadRequest(ValidateModel());                
             }
             else
             {
-                return response;
+                response = _shoppingCart.AddItemToCart(item);
+
+                if (response != String.Empty)
+                {
+                   //return success and added items
+                  return  Ok(new
+                    {
+                        status = true,
+                        code=200,
+                        message = response,
+                        cartData = GetItemsAfterAdd(item.PhoneNumber)
+                    });
+                }                                    
+                else
+                {                  
+                    return BadRequest(response);
+                }
+
             }
         }
 
@@ -62,9 +78,18 @@ namespace Hubtel.eCommerce.Cart.Api.Controllers
         [HttpGet("filter"), Route("GetAllCartItems")]
         public IEnumerable<ItemModel> GetAllCartItem([FromQuery]ItemFilter item)
         {
-            IEnumerable<ItemModel> allCartItems;//
-            allCartItems = _shoppingCart.GetAllCartItem(item);
+            IEnumerable<ItemModel> allCartItems = null;
+
+            if (!String.IsNullOrEmpty(ValidateModel()))
+            {
+                BadRequest();
+            }
+            else
+            {
+                allCartItems = _shoppingCart.GetAllCartItem(item);
+            }
             return allCartItems;
+
         }
 
 
@@ -82,6 +107,7 @@ namespace Hubtel.eCommerce.Cart.Api.Controllers
             else
             {
                return BadRequest(new {
+                    code = 400,
                     status = false,
                     response = _shoppingCart.GetSingleItemValidation(itemID, phoneNumber)
                 });
@@ -89,9 +115,32 @@ namespace Hubtel.eCommerce.Cart.Api.Controllers
            
             return Ok(new
             {
+                code = 200,
                 status = true,
                 response = cartItem
             });
+        }
+
+        [HttpPost]
+        [Route("GetItemsAfterAdd")]
+        public IEnumerable<ItemModel> GetItemsAfterAdd(string phoneNum) {
+            IEnumerable<ItemModel> items = null;
+            items = _shoppingCart.GetItemsAfterAdd(phoneNum);
+
+            return items;
+        }
+
+
+
+
+        public string ValidateModel()
+        {
+            string message = string.Join(";", ModelState.Values
+                .SelectMany(x => x.Errors)
+                .Select(x => x.ErrorMessage)           
+                );
+            return message;
+
         }
 
 

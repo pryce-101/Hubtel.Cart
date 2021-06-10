@@ -11,7 +11,8 @@ namespace Hubtel.eCommerce.Cart.Api
         string AddItemToCart(ItemModel item);
         string DeleteCartItem(int itemID, string phoneNumber);
         ItemModel GetCartItem(int itemID, string phoneNumber);
-        IEnumerable<ItemModel> GetAllCartItem(ItemFilter filter);
+        IEnumerable<ItemModel> GetAllCartItem(ItemFilter filter); 
+        IEnumerable<ItemModel> GetItemsAfterAdd(string phone); 
         string GetSingleItemValidation(int itemID, string phoneNum);
     }
 }
