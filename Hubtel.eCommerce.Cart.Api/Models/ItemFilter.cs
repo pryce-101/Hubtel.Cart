@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Hubtel.eCommerce.Cart.Api.Models
 {
-    public class ItemFilter:ItemModel
+    public class ItemFilter:GetItemModel
     {
         //public DateTime Time { get; set; }
         [Required( ErrorMessage = "Filter option is Required")]

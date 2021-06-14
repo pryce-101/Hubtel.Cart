@@ -1,5 +1,6 @@
 ﻿using Dapper;
 using Hubtel.eCommerce.Cart.Api.Models;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
@@ -15,15 +16,17 @@ namespace Hubtel.eCommerce.Cart.Api.Repo
     {
         private readonly string connectionString;
         private readonly string SuccessMessage = "Item Added to Cart Successfully!";
-        private readonly string FailedMessage = "Adding Item to cart Failed. Try Again.";
         private readonly string DeleteSuccessMessage = "Item Successfully Deleted from Cart. Thank You.";
-        private readonly string DeleteFailedMessage = "Item Deletion Failed. Try Again.";
-       
-        public ShoppingCartRepo(IConfiguration configuration)
+       // private readonly string FailedMessage = "Adding Item to cart Failed. Try Again.";
+       // private readonly string DeleteFailedMessage = "Item Deletion Failed. Try Again.";
+
+        private ShoppingCartDBContext _dbContext { get; set; }
+        public ShoppingCartRepo(IConfiguration configuration, ShoppingCartDBContext context)
         {
             connectionString = configuration.GetConnectionString("DefaultConnection");
-          
-        }
+            _dbContext = context;
+
+        }       
 
         //Add item to cart
         public string AddItemToCart(ItemModel item)
@@ -32,7 +35,6 @@ namespace Hubtel.eCommerce.Cart.Api.Repo
            
             try
             {
-                             
                     using (var conn = new SqlConnection(connectionString))
                     {
                         conn.Open();
@@ -75,24 +77,68 @@ namespace Hubtel.eCommerce.Cart.Api.Repo
             }
             catch (Exception ex)
             {
-                operationStatus = FailedMessage;
+                operationStatus = "";
+            }
+
+            return operationStatus;
+        }
+
+
+        //Add Item with EF
+        public string AddItemToCartEF(ItemModel item)
+        {
+            int possibleQty = 0;
+            string operationStatus = "";
+
+            try
+            {
+                var existingParent = _dbContext.CartItems.Where(it => item.PhoneNumber.ToString() == item.PhoneNumber.ToString()
+                                    && Convert.ToInt32(it.ItemID) == Convert.ToInt32(item.ItemID)).FirstOrDefault();
+
+                if (existingParent != null)
+                {
+                    possibleQty= existingParent.Quantity + item.Quantity;
+
+                    _dbContext.CartItems.Attach(existingParent);
+                    existingParent.Quantity = possibleQty;
+                    existingParent.UnitPrice = item.UnitPrice;
+                   
+                    _dbContext.Entry(item).Property(x=> x.Id).IsModified=false;
+
+                    _dbContext.SaveChanges();                    
+                    operationStatus = SuccessMessage;
+
+                   
+                }
+                else
+                {
+                    _dbContext.Add(item);
+                    _dbContext.SaveChanges();
+                    operationStatus = SuccessMessage;
+                }
+
+            }
+            catch (Exception ex)
+            {
+                operationStatus = "";
             }
 
             return operationStatus;
         }
 
         //GET single item in cart
-        public ItemModel GetCartItem(int itemID, string phoneNumber)
+        public ItemModel GetCartItem(GetSingleItemModel item)
         {            
             ItemModel cartList = null;
             try
             {
                 using (var connection = new SqlConnection(connectionString))
                 {
+                   
                     var dynamicParams = new DynamicParameters();
-                    dynamicParams.Add("@PhoneN", phoneNumber);
-                    dynamicParams.Add("@itemID", itemID);
-                    cartList = connection.QueryFirstOrDefault<ItemModel>("SELECT * from [Hubtel].[dbo].[CartItems] where PhoneNumber = @PhoneN and ItemID = @itemID",
+                    dynamicParams.Add("@PhoneN", item.PhoneNumber);
+                    dynamicParams.Add("@ItemID", item.ItemID);
+                    cartList = connection.QueryFirstOrDefault<ItemModel>("SELECT * from [Hubtel].[dbo].[CartItems] where PhoneNumber = @PhoneN and ItemID = @ItemID",
                                    dynamicParams, commandType: CommandType.Text);
                 }
 
@@ -106,38 +152,39 @@ namespace Hubtel.eCommerce.Cart.Api.Repo
         }
 
         //GET all cart items
-        public IEnumerable<ItemModel> GetAllCartItem(ItemFilter filter)
+        public async Task<IEnumerable<ItemModel>> GetAllCartItem(ItemFilter filter)
         {
             IEnumerable<ItemModel> cartList = null;
             try
             {
                 using (var connection = new SqlConnection(connectionString))
                 {
+                    await connection.OpenAsync();
                     var dynamicParams = new DynamicParameters();
                     if (filter.filter == "PhoneNumber")
                     {
 
                         dynamicParams.Add("@PhoneN", filter.PhoneNumber);
-                        cartList = connection.Query<ItemModel>("SELECT * from [Hubtel].[dbo].[CartItems] where PhoneNumber = @PhoneN",
+                        cartList = await connection.QueryAsync<ItemModel>("SELECT * from [Hubtel].[dbo].[CartItems] where PhoneNumber = @PhoneN",
                                        dynamicParams,
                                         commandType: CommandType.Text);
                     }
                     else if (filter.filter == "Quantity")
                     {
                         dynamicParams.Add("@Qty", filter.Quantity);
-                        cartList = connection.Query<ItemModel>("SELECT * from [Hubtel].[dbo].[CartItems] where Quantity = @Qty",
+                        cartList =await  connection.QueryAsync<ItemModel>("SELECT * from [Hubtel].[dbo].[CartItems] where Quantity = @Qty",
                                        dynamicParams,
                                         commandType: CommandType.Text);
                     }
                     else if (filter.filter == "Item")
                     {
                         dynamicParams.Add("@Item_Name", filter.ItemName);
-                        cartList = connection.Query<ItemModel>("SELECT * from [Hubtel].[dbo].[CartItems] where ItemName = @Item_Name",
+                        cartList = await connection.QueryAsync<ItemModel>("SELECT * from [Hubtel].[dbo].[CartItems] where ItemName = @Item_Name",
                                        dynamicParams,
                                         commandType: CommandType.Text);
                     }
+                   
                 }
-
             }
             catch (Exception ex)
             {
@@ -149,40 +196,31 @@ namespace Hubtel.eCommerce.Cart.Api.Repo
 
 
         //DELETE cart item
-        public string DeleteCartItem(int itemID, string phoneNumber)
+        public string DeleteCartItem(DeleteItemModel item)
         {
             string operationStatus = "";
             try
             {
-                if (!String.IsNullOrEmpty(ValidateDeleteEntry(itemID,phoneNumber)))
-                {
-                    operationStatus = ValidateDeleteEntry(itemID, phoneNumber);
-                }
-                else
-                {
                     using (var conn = new SqlConnection(connectionString))
                     {
                         conn.Open();
                         SqlCommand sqlCommand = new SqlCommand("DELETE FROM [Hubtel].[dbo].[CartItems] WHERE ItemID=@ItemID AND PhoneNumber = @PhoneNumber", conn);
-                        sqlCommand.Parameters.AddWithValue("@ItemID", itemID);
-                        sqlCommand.Parameters.AddWithValue("@PhoneNumber", phoneNumber);
+                        sqlCommand.Parameters.AddWithValue("@ItemID", item.ItemID);
+                        sqlCommand.Parameters.AddWithValue("@PhoneNumber", item.PhoneNumber);
                         var rowAffected = sqlCommand.ExecuteNonQuery();
                         if (rowAffected > 0)
                         {
                             operationStatus = DeleteSuccessMessage;
                         }
                         else
-                        {
-                            operationStatus = DeleteFailedMessage;
-
+                        {                           
+                            operationStatus = "";
                         }
                         conn.Close();
                     }               
-                }
             }
             catch (Exception ex)
             {
-
                 throw ex;
             }
 
@@ -214,60 +252,5 @@ namespace Hubtel.eCommerce.Cart.Api.Repo
            
         }
 
-
-        //add item form validation
-        public string ValidateFormEntry(ItemModel items)
-        {
-            if (items.ItemID == 0 )
-            {
-                return "Item ID is Required";
-            }
-            else if (String.IsNullOrEmpty(items.ItemName))
-            {
-                return "Item Name is Required";
-            }
-            else if (items.Quantity == 0)
-            {
-                return "Item Quantity is Required";
-
-            }
-            else if (String.IsNullOrEmpty(items.PhoneNumber))
-            {
-                return "Phone Number is Required";
-
-            }
-            return "";
-        }
-
-        //delete item from cart form validation
-        public string ValidateDeleteEntry(int itemID, string phoneNumber)
-        {
-            if (itemID == 0)
-            {
-                return "Item ID is Required";
-            }
-            else if (String.IsNullOrEmpty(phoneNumber))
-            {
-                return "Phone Number is Required";
-
-            }
-            return "";
-        }
-
-        public string GetSingleItemValidation(int itemID, string phoneNum)
-        {    
-            if (itemID == 0)
-            {
-                return "Item ID is Required";
-            }
-            else if (String.IsNullOrEmpty(phoneNum))
-            {
-                return "Phone Number is Required";
-
-            }
-            return "";
-        }
-
-      
     }
 }

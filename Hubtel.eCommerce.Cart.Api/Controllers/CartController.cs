@@ -5,15 +5,17 @@ using System.Threading.Tasks;
 using Hubtel.eCommerce.Cart.Api.Models;
 using Microsoft.AspNetCore.Mvc;
 
+
+
 namespace Hubtel.eCommerce.Cart.Api.Controllers
 {
-     
+
     [Route("api/[controller]")]
     [ApiController]
     public class CartController : ControllerBase
     {
         private readonly IShoppingCart _shoppingCart;
-        public CartController( IShoppingCart shopCart)
+        public CartController(IShoppingCart shopCart)
         {
             _shoppingCart = shopCart;
         }
@@ -26,13 +28,13 @@ namespace Hubtel.eCommerce.Cart.Api.Controllers
         }
 
         //Add item to cart
-        [HttpPost,Route("AddItemToCart")]
-        public ActionResult<string> AddItemToCart([FromBody] ItemModel item)
+        [HttpPost, Route("AddItemToCart")]
+        public IActionResult AddItemToCart([FromBody] ItemModel item)
         {
             string response = "";
             if (!String.IsNullOrEmpty(ValidateModel()))
             {
-                return BadRequest(ValidateModel());                
+                return BadRequest(ValidateModel());
             }
             else
             {
@@ -40,18 +42,22 @@ namespace Hubtel.eCommerce.Cart.Api.Controllers
 
                 if (response != String.Empty)
                 {
-                   //return success and added items
-                  return  Ok(new
+                    //return success and added items
+                    return Ok(new
                     {
                         status = true,
-                        code=200,
+                        code = 200,
                         message = response,
                         cartData = GetItemsAfterAdd(item.PhoneNumber)
                     });
-                }                                    
+                }
                 else
-                {                  
-                    return BadRequest(response);
+                {
+                    return BadRequest(new {
+                        status=false,
+                        code=400,
+                        message = response                    
+                    });
                 }
 
             }
@@ -59,34 +65,59 @@ namespace Hubtel.eCommerce.Cart.Api.Controllers
 
         // Delete item
         [HttpDelete, Route("DeleteItem")]
-        public ActionResult<string> DeleteItem(ItemModel item)
+        public IActionResult DeleteItem(DeleteItemModel item)
         {
-            string response = _shoppingCart.DeleteCartItem(item.ItemID,item.PhoneNumber);
-
-            if (response != String.Empty)
+            string response = "";
+            if (String.IsNullOrEmpty(ValidateModel()))
             {
-                return response;
+                 response = _shoppingCart.DeleteCartItem(item);
+                if (response != String.Empty)
+                {
+                    return  Ok(new
+                    {
+                        status = true,
+                        code = 200,
+                        Message = response
+                    });
+                }
+                else
+                {
+                    return BadRequest(new
+                    {
+                        status = false,
+                        code = 400,
+                        Message = response
+                    });
+                }
+
             }
             else
             {
-                return response;
+             return   BadRequest(new
+                {
+                    status = false,
+                    code=400,
+                    Message= "Deletion Failed"
+                });
             }
+
+            //return response;
         }
 
-       
+
         //GET all cart items (list)
         [HttpGet("filter"), Route("GetAllCartItems")]
-        public IEnumerable<ItemModel> GetAllCartItem([FromQuery]ItemFilter item)
+        public async Task<IEnumerable<ItemModel>> GetAllCartItem([FromQuery]ItemFilter item)
         {
             IEnumerable<ItemModel> allCartItems = null;
 
             if (!String.IsNullOrEmpty(ValidateModel()))
             {
-                BadRequest();
+                BadRequest("Kindly provide requested fields");
             }
             else
             {
-                allCartItems = _shoppingCart.GetAllCartItem(item);
+                allCartItems = await _shoppingCart.GetAllCartItem(item);
             }
             return allCartItems;
 
@@ -96,23 +127,23 @@ namespace Hubtel.eCommerce.Cart.Api.Controllers
 
         //GET single Cart Item
         [HttpGet, Route("GetSingleCartItem")]
-        public IActionResult GetSingleCartItem(int itemID, string phoneNumber)
+        public IActionResult GetSingleCartItem([FromQuery] GetSingleItemModel item)
         {
             ItemModel cartItem = new ItemModel();
 
-            if (String.IsNullOrEmpty(_shoppingCart.GetSingleItemValidation(itemID,phoneNumber)))
+            if (String.IsNullOrEmpty(ValidateModel()))
             {
-               cartItem = _shoppingCart.GetCartItem(itemID, phoneNumber);
+                cartItem = _shoppingCart.GetCartItem(item);
             }
             else
             {
-               return BadRequest(new {
+                return BadRequest(new {
                     code = 400,
                     status = false,
-                    response = _shoppingCart.GetSingleItemValidation(itemID, phoneNumber)
+                    response = ValidateModel()
                 });
             }
-           
+
             return Ok(new
             {
                 code = 200,
@@ -131,18 +162,72 @@ namespace Hubtel.eCommerce.Cart.Api.Controllers
         }
 
 
+        [HttpPost, Route("AddItemToCartEF")]
+        public IActionResult AddItemToCartEF([FromBody] ItemModel item)
+        {
+            string response = "";
+            if (!String.IsNullOrEmpty(ValidateModel()))
+            {
+                return BadRequest(ValidateModel());
+            }
+            else
+            {
+                response = _shoppingCart.AddItemToCartEF(item);
+
+                if (response != String.Empty)
+                {
+                    //return success and added items
+                    return Ok(new
+                    {
+                        status = true,
+                        code = 200,
+                        message = response ,
+                        cartData = GetItemsAfterAdd(item.PhoneNumber)
+                    });
+                }
+                else
+                {
+                    return BadRequest(new {
+                        status=false,
+                        code=400,message=response
+                    });
+                }
+
+            }
+        }
+
 
 
         public string ValidateModel()
         {
             string message = string.Join(";", ModelState.Values
                 .SelectMany(x => x.Errors)
-                .Select(x => x.ErrorMessage)           
+                .Select(x => x.ErrorMessage)
                 );
             return message;
 
         }
 
+        //public string ValidateDeleteModel()
+        //{
+        //    string message = string.Join(";", ModelState.Values
+        //        .SelectMany(x => x.Errors)
+        //        .Select(x => x.ErrorMessage)
+        //        );
+        //    return message;
+
+        //}
+        //public string ValidateGetSingleItemModel()
+        //{
+        //    string message = string.Join(";", ModelState.Values
+        //        .SelectMany(x => x.Errors)
+        //        .Select(x => x.ErrorMessage)
+        //        );
+        //    return message;
+
+        //}    
+
 
     }
-}
+              
+    }

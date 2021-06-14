@@ -2,12 +2,15 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Hubtel.eCommerce.Cart.Api.Models;
 using Hubtel.eCommerce.Cart.Api.Repo;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -30,11 +33,16 @@ namespace Hubtel.eCommerce.Cart.Api
         {
             services.AddCors();
 
-            services.AddSingleton<IShoppingCart, ShoppingCartRepo>();
+            services.AddTransient<IShoppingCart, ShoppingCartRepo>();
             services.Configure<HtmlHelperOptions>(o => o.ClientValidationEnabled = true);
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1)
-                .AddJsonOptions(options => options.SerializerSettings.ContractResolver =
-                new DefaultContractResolver()); 
+            
+            services.AddEntityFrameworkSqlServer();
+            services.AddDbContext<ShoppingCartDBContext>(options => options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
+
+            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
+            //.services.AddJsonOptions(options => options.SerializerSettings.ContractResolver =
+            //    new DefaultContractResolver());
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

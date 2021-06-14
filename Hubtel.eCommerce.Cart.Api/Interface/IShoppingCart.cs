@@ -9,10 +9,11 @@ namespace Hubtel.eCommerce.Cart.Api
    public interface IShoppingCart
     {
         string AddItemToCart(ItemModel item);
-        string DeleteCartItem(int itemID, string phoneNumber);
-        ItemModel GetCartItem(int itemID, string phoneNumber);
-        IEnumerable<ItemModel> GetAllCartItem(ItemFilter filter); 
+        string AddItemToCartEF(ItemModel item);
+        string DeleteCartItem(DeleteItemModel item);
+        ItemModel GetCartItem(GetSingleItemModel item);
+        Task<IEnumerable<ItemModel>> GetAllCartItem(ItemFilter filter); 
         IEnumerable<ItemModel> GetItemsAfterAdd(string phone); 
-        string GetSingleItemValidation(int itemID, string phoneNum);
+        //string GetSingleItemValidation(int itemID, string phoneNum);
     }
 }
