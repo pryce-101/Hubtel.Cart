@@ -1,21 +1,26 @@
 # Hubtel.Cart
 
-LATEST UPDATE DOCUMENTATION
+**LATEST UPDATE DOCUMENTATION**
 Swagger UI Url => https://localhost:44344/swagger/index.html
 (port number may vary on your system)
 
-Changes
-(Database)
-From MSSQL to PostgreSql
-Kindly Check below for the table script
+*Kindly alter the connection string in the code base located 
+in appsettings.json and appsettings.Development.json.
 
-Endpoints Using Entity Framework 
+**Changes**
+(Database)
+From MSSQL to PostgreSql.
+Kindly Check below for the table script to run on your local
+postgress database.
+
+
+**Endpoints Using Entity Framework** 
 DeleteItem
 GetItemsAfterAdd
 GetSingleCartItem
 AddItemToCartEF
 
-Async Task
+**Async Task**
 GetAllCartItems
 
 
