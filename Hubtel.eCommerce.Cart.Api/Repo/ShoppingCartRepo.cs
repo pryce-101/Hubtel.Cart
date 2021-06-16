@@ -5,9 +5,10 @@ using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.SqlClient;
+//using System.Data.SqlClient;
 using System.Linq;
 using System.Threading.Tasks;
+using Npgsql;
 
 namespace Hubtel.eCommerce.Cart.Api.Repo
 {
@@ -35,14 +36,14 @@ namespace Hubtel.eCommerce.Cart.Api.Repo
            
             try
             {
-                    using (var conn = new SqlConnection(connectionString))
+                    using (var conn = new NpgsqlConnection(connectionString))
                     {
                         conn.Open();
                         bool rowsAffected0 = false;
-                        SqlCommand fst_sqlCommand = new SqlCommand("SELECT Top 1 * from [Hubtel].[dbo].[CartItems] WHERE PhoneNumber = @PhoneNumber AND ItemID = @ItemID ", conn);
-                        fst_sqlCommand.Parameters.AddWithValue("@ItemID", item.ItemID);
-                        fst_sqlCommand.Parameters.AddWithValue("@PhoneNumber", item.PhoneNumber);
-                        SqlDataReader reader = fst_sqlCommand.ExecuteReader();
+                        NpgsqlCommand fst_Command = new NpgsqlCommand("SELECT * from cartitems WHERE ItemID = @ItemID AND PhoneNumber = @PhoneNumber", conn);
+                        fst_Command.Parameters.AddWithValue("@ItemID", item.itemid);
+                        fst_Command.Parameters.AddWithValue("@PhoneNumber", item.phonenumber);
+                        NpgsqlDataReader reader = fst_Command.ExecuteReader();
                         while (reader.Read())
                         {
                             rowsAffected0 = reader.HasRows;
@@ -50,24 +51,24 @@ namespace Hubtel.eCommerce.Cart.Api.Repo
                          reader.Close();
                         
                         if (rowsAffected0)
-                        {                            
-                            SqlCommand update_sqlCommand = new SqlCommand("UPDATE [Hubtel].[dbo].[CartItems] SET Quantity = Quantity + @Quantity WHERE ItemID = @ItemID AND PhoneNumber = @PhoneNumber ", conn);
-                            update_sqlCommand.Parameters.AddWithValue("@ItemID", item.ItemID);
-                            update_sqlCommand.Parameters.AddWithValue("@Quantity", item.Quantity);
-                            update_sqlCommand.Parameters.AddWithValue("@PhoneNumber", item.PhoneNumber);
-                            var rowsAffected1 = update_sqlCommand.ExecuteNonQuery();
+                        {
+                            NpgsqlCommand update_Command = new NpgsqlCommand("UPDATE cartitems SET Quantity = Quantity + @Quantity WHERE ItemID = @ItemID AND PhoneNumber = @PhoneNumber ", conn);
+                            update_Command.Parameters.AddWithValue("@ItemID", item.itemid);
+                            update_Command.Parameters.AddWithValue("@Quantity", item.quantity);
+                            update_Command.Parameters.AddWithValue("@PhoneNumber", item.phonenumber);
+                            var rowsAffected1 = update_Command.ExecuteNonQuery();
                             operationStatus = SuccessMessage;
                         }
                         else
                         {
-                            // (ItemID,ItemName,Quantity,UnitPrice,PhoneNumber) 
-                            SqlCommand sqlCommand = new SqlCommand("INSERT INTO [Hubtel].[dbo].[CartItems] VALUES (@ItemID,@ItemName,@Quantity,@UnitPrice,@PhoneNumber)", conn);
-                            sqlCommand.Parameters.AddWithValue("@ItemID", item.ItemID);
-                            sqlCommand.Parameters.AddWithValue("@ItemName", item.ItemName);
-                            sqlCommand.Parameters.AddWithValue("@Quantity", item.Quantity);
-                            sqlCommand.Parameters.AddWithValue("@UnitPrice", item.UnitPrice);
-                            sqlCommand.Parameters.AddWithValue("@PhoneNumber", item.PhoneNumber.TrimEnd());
-                            var rowsAffected = sqlCommand.ExecuteNonQuery();
+
+                            NpgsqlCommand ngpsqlCommand = new NpgsqlCommand("INSERT INTO cartitems (ItemID,ItemName,Quantity,UnitPrice,PhoneNumber) VALUES (@ItemID,@ItemName,@Quantity,@UnitPrice,@PhoneNumber)", conn);
+                            ngpsqlCommand.Parameters.AddWithValue("@ItemID", item.itemid);
+                            ngpsqlCommand.Parameters.AddWithValue("@ItemName", item.itemname);
+                            ngpsqlCommand.Parameters.AddWithValue("@Quantity", item.quantity);
+                            ngpsqlCommand.Parameters.AddWithValue("@UnitPrice", item.unitprice);
+                            ngpsqlCommand.Parameters.AddWithValue("@PhoneNumber", item.phonenumber.Trim());
+                            var rowsAffected = ngpsqlCommand.ExecuteNonQuery();
                             operationStatus = SuccessMessage;
                         }
                         
@@ -92,22 +93,21 @@ namespace Hubtel.eCommerce.Cart.Api.Repo
 
             try
             {
-                var existingParent = _dbContext.CartItems.Where(it => item.PhoneNumber.ToString() == item.PhoneNumber.ToString()
-                                    && Convert.ToInt32(it.ItemID) == Convert.ToInt32(item.ItemID)).FirstOrDefault();
+                var existingParent = _dbContext.cartitems.Where(it => it.phonenumber.ToString() == item.phonenumber.ToString()
+                                    && Convert.ToInt32(it.itemid) == Convert.ToInt32(item.itemid)).FirstOrDefault();
 
                 if (existingParent != null)
                 {
-                    possibleQty= existingParent.Quantity + item.Quantity;
+                    possibleQty= existingParent.quantity + item.quantity;
 
-                    _dbContext.CartItems.Attach(existingParent);
-                    existingParent.Quantity = possibleQty;
-                    existingParent.UnitPrice = item.UnitPrice;
+                    _dbContext.cartitems.Attach(existingParent);
+                    existingParent.quantity = possibleQty;
+                    existingParent.unitprice = item.unitprice;
                    
-                    _dbContext.Entry(item).Property(x=> x.Id).IsModified=false;
+                    _dbContext.Entry(item).Property(x=> x.id).IsModified=false;
 
                     _dbContext.SaveChanges();                    
                     operationStatus = SuccessMessage;
-
                    
                 }
                 else
@@ -132,15 +132,8 @@ namespace Hubtel.eCommerce.Cart.Api.Repo
             ItemModel cartList = null;
             try
             {
-                using (var connection = new SqlConnection(connectionString))
-                {
-                   
-                    var dynamicParams = new DynamicParameters();
-                    dynamicParams.Add("@PhoneN", item.PhoneNumber);
-                    dynamicParams.Add("@ItemID", item.ItemID);
-                    cartList = connection.QueryFirstOrDefault<ItemModel>("SELECT * from [Hubtel].[dbo].[CartItems] where PhoneNumber = @PhoneN and ItemID = @ItemID",
-                                   dynamicParams, commandType: CommandType.Text);
-                }
+                 cartList = _dbContext.cartitems.Where(it => it.phonenumber.ToString() == item.phonenumber.ToString()
+                                    && Convert.ToInt32(it.itemid) == Convert.ToInt32(item.itemid)).FirstOrDefault();
 
             }
             catch (Exception ex)
@@ -157,33 +150,35 @@ namespace Hubtel.eCommerce.Cart.Api.Repo
             IEnumerable<ItemModel> cartList = null;
             try
             {
-                using (var connection = new SqlConnection(connectionString))
+                using (var connection = new NpgsqlConnection(connectionString))
                 {
                     await connection.OpenAsync();
                     var dynamicParams = new DynamicParameters();
                     if (filter.filter == "PhoneNumber")
                     {
 
-                        dynamicParams.Add("@PhoneN", filter.PhoneNumber);
-                        cartList = await connection.QueryAsync<ItemModel>("SELECT * from [Hubtel].[dbo].[CartItems] where PhoneNumber = @PhoneN",
+                        dynamicParams.Add("@PhoneN", filter.phonenumber);
+                        cartList = await connection.QueryAsync<ItemModel>("SELECT * from cartitems where PhoneNumber = @PhoneN",
                                        dynamicParams,
                                         commandType: CommandType.Text);
                     }
                     else if (filter.filter == "Quantity")
                     {
-                        dynamicParams.Add("@Qty", filter.Quantity);
-                        cartList =await  connection.QueryAsync<ItemModel>("SELECT * from [Hubtel].[dbo].[CartItems] where Quantity = @Qty",
+                        dynamicParams.Add("@Qty", filter.quantity);
+                        dynamicParams.Add("@Qty", filter.phonenumber);
+                        cartList =await  connection.QueryAsync<ItemModel>("SELECT * from cartitems where Quantity = @Qty AND PhoneNumber=@PhoneN",
                                        dynamicParams,
                                         commandType: CommandType.Text);
                     }
                     else if (filter.filter == "Item")
                     {
-                        dynamicParams.Add("@Item_Name", filter.ItemName);
-                        cartList = await connection.QueryAsync<ItemModel>("SELECT * from [Hubtel].[dbo].[CartItems] where ItemName = @Item_Name",
+                        dynamicParams.Add("@Item_Name", filter.itemname);
+                        dynamicParams.Add("@Qty", filter.phonenumber);
+
+                        cartList = await connection.QueryAsync<ItemModel>("SELECT * from cartitems where ItemName = @Item_Name AND PhoneNumber=@PhoneN",
                                        dynamicParams,
                                         commandType: CommandType.Text);
-                    }
-                   
+                    }                   
                 }
             }
             catch (Exception ex)
@@ -194,6 +189,33 @@ namespace Hubtel.eCommerce.Cart.Api.Repo
             return cartList;
         }
 
+        public IEnumerable<ItemModel> GetAllCartItemWithEF(ItemFilter filter)
+        {
+            IEnumerable<ItemModel> cartList = null;
+            try
+            {              
+                  
+                    if (filter.filter == "PhoneNumber")
+                    {
+                        cartList = _dbContext.cartitems.Where(it => it.phonenumber == filter.phonenumber);
+                    }
+                    else if (filter.filter == "Quantity")
+                    {
+                        cartList =  _dbContext.cartitems.Where(it => it.quantity == filter.quantity);
+                    }
+                    else if (filter.filter == "Item")
+                    {
+                        cartList = _dbContext.cartitems.Where(it => it.itemname == filter.itemname);
+                    }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            
+            return cartList;
+        }
+
 
         //DELETE cart item
         public string DeleteCartItem(DeleteItemModel item)
@@ -201,23 +223,13 @@ namespace Hubtel.eCommerce.Cart.Api.Repo
             string operationStatus = "";
             try
             {
-                    using (var conn = new SqlConnection(connectionString))
-                    {
-                        conn.Open();
-                        SqlCommand sqlCommand = new SqlCommand("DELETE FROM [Hubtel].[dbo].[CartItems] WHERE ItemID=@ItemID AND PhoneNumber = @PhoneNumber", conn);
-                        sqlCommand.Parameters.AddWithValue("@ItemID", item.ItemID);
-                        sqlCommand.Parameters.AddWithValue("@PhoneNumber", item.PhoneNumber);
-                        var rowAffected = sqlCommand.ExecuteNonQuery();
-                        if (rowAffected > 0)
-                        {
-                            operationStatus = DeleteSuccessMessage;
-                        }
-                        else
-                        {                           
-                            operationStatus = "";
-                        }
-                        conn.Close();
-                    }               
+                var deleteCartItem = _dbContext.cartitems.Where(it => it.itemid == item.itemid
+                                   && it.phonenumber == item.phonenumber).FirstOrDefault();
+                if (deleteCartItem != null)
+                    _dbContext.cartitems.Remove(deleteCartItem);
+                    _dbContext.SaveChanges();
+                    operationStatus = DeleteSuccessMessage;
+               
             }
             catch (Exception ex)
             {
@@ -234,13 +246,16 @@ namespace Hubtel.eCommerce.Cart.Api.Repo
 
             try
             {
-                using (var connection = new SqlConnection(connectionString))
-                {
-                    var dynamicParams = new DynamicParameters();
-                    dynamicParams.Add("@PhoneNumber", phoneNumber);
-                    rows = connection.Query<ItemModel>("SELECT * FROM [Hubtel].[dbo].[CartItems] WHERE PhoneNumber = @PhoneNumber Order by Id DESC ",
-                                   dynamicParams, commandType: CommandType.Text);
-                }
+                rows = _dbContext.cartitems.OrderByDescending(it => it.id).Where(it => it.phonenumber.ToString() == phoneNumber).ToList();
+                
+
+                //using (var connection = new NpgsqlConnection(connectionString))
+                //{
+                //    var dynamicParams = new DynamicParameters();
+                //    dynamicParams.Add("@PhoneNumber", phoneNumber);
+                //    rows = connection.Query<ItemModel>("SELECT * FROM cartitems WHERE PhoneNumber = @PhoneNumber Order by Id DESC ",
+                //                   dynamicParams, commandType: CommandType.Text);
+                //}
 
             }
             catch (Exception ex)
@@ -251,6 +266,8 @@ namespace Hubtel.eCommerce.Cart.Api.Repo
             return rows;
            
         }
+
+       
 
     }
 }

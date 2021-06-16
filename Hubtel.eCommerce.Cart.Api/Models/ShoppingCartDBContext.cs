@@ -12,7 +12,7 @@ namespace Hubtel.eCommerce.Cart.Api.Models
         {
 
         }
-        public DbSet<ItemModel> CartItems { get; set; }
+        public DbSet<ItemModel> cartitems { get; set; }
        
     }
 }

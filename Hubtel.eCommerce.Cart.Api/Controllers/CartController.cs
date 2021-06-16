@@ -19,7 +19,8 @@ namespace Hubtel.eCommerce.Cart.Api.Controllers
         {
             _shoppingCart = shopCart;
         }
-
+       
+       
         // GET api/values
         [HttpGet]
         public ActionResult<IEnumerable<string>> Get()
@@ -27,14 +28,19 @@ namespace Hubtel.eCommerce.Cart.Api.Controllers
             return new string[] { "Ready!", "Lets run some codes!" };
         }
 
+
         //Add item to cart
         [HttpPost, Route("AddItemToCart")]
         public IActionResult AddItemToCart([FromBody] ItemModel item)
         {
             string response = "";
-            if (!String.IsNullOrEmpty(ValidateModel()))
+            if (!ModelState.IsValid)
             {
-                return BadRequest(ValidateModel());
+                return BadRequest(new
+                {
+                    status = false,
+                    message = "Kindly fill in all required fields"
+                });
             }
             else
             {
@@ -42,21 +48,20 @@ namespace Hubtel.eCommerce.Cart.Api.Controllers
 
                 if (response != String.Empty)
                 {
-                    //return success and added items
+                    //return success and added items                  
                     return Ok(new
                     {
                         status = true,
-                        code = 200,
                         message = response,
-                        cartData = GetItemsAfterAdd(item.PhoneNumber)
+                        data = GetItemsAfterAdd(item.phonenumber)
                     });
                 }
                 else
                 {
+                    //return if addition failed
                     return BadRequest(new {
                         status=false,
-                        code=400,
-                        message = response                    
+                        message = "Adding Item to cart failed. Try Again."                    
                     });
                 }
 
@@ -68,16 +73,15 @@ namespace Hubtel.eCommerce.Cart.Api.Controllers
         public IActionResult DeleteItem(DeleteItemModel item)
         {
             string response = "";
-            if (String.IsNullOrEmpty(ValidateModel()))
+            if (ModelState.IsValid)
             {
                  response = _shoppingCart.DeleteCartItem(item);
                 if (response != String.Empty)
                 {
-                    return  Ok(new
+                    return Ok(new
                     {
                         status = true,
-                        code = 200,
-                        Message = response
+                        message = response
                     });
                 }
                 else
@@ -85,42 +89,42 @@ namespace Hubtel.eCommerce.Cart.Api.Controllers
                     return BadRequest(new
                     {
                         status = false,
-                        code = 400,
-                        Message = response
+                        message = "Deletion failed. Try Again"
                     });
                 }
-
             }
             else
             {
-             return   BadRequest(new
+                return BadRequest(new
                 {
                     status = false,
-                    code=400,
-                    Message= "Deletion Failed"
+                    Message= "Kindly provide required fields"
                 });
             }
-
-            //return response;
+            
         }
 
 
         //GET all cart items (list)
-        [HttpGet("filter"), Route("GetAllCartItems")]
-        public async Task<IEnumerable<ItemModel>> GetAllCartItem([FromQuery]ItemFilter item)
+        [HttpGet, Route("GetAllCartItems")]
+        public async Task<IEnumerable<ItemModel>> GetAllCartItems([FromQuery]ItemFilter item)
         {
             IEnumerable<ItemModel> allCartItems = null;
 
-            if (!String.IsNullOrEmpty(ValidateModel()))
+            if (!ModelState.IsValid)
             {
-                BadRequest("Kindly provide requested fields");
+                BadRequest(new {
+                    success=false,
+                    message= "Kindly provide requested fields"
+                });
             }
             else
             {
                 allCartItems = await _shoppingCart.GetAllCartItem(item);
+               
             }
-            return allCartItems;
 
+            return  allCartItems;
         }
 
 
@@ -131,25 +135,38 @@ namespace Hubtel.eCommerce.Cart.Api.Controllers
         {
             ItemModel cartItem = new ItemModel();
 
-            if (String.IsNullOrEmpty(ValidateModel()))
+            if (ModelState.IsValid)
             {
                 cartItem = _shoppingCart.GetCartItem(item);
             }
             else
             {
                 return BadRequest(new {
-                    code = 400,
                     status = false,
-                    response = ValidateModel()
+                    message = "Kindly provide all Required fields"
                 });
             }
 
-            return Ok(new
+            if (cartItem == null)
             {
-                code = 200,
-                status = true,
-                response = cartItem
-            });
+                return BadRequest(new
+                {
+                    status = false,
+                    message = "Item not found in cart. Check item details",
+                    data = cartItem
+                });
+            }
+            else
+            {
+                return Ok(new
+                {
+                    status = true,
+                    message = "Cart Item found Successfully.",
+                    data = cartItem
+                });
+            }
+
+           
         }
 
         [HttpPost]
@@ -166,9 +183,12 @@ namespace Hubtel.eCommerce.Cart.Api.Controllers
         public IActionResult AddItemToCartEF([FromBody] ItemModel item)
         {
             string response = "";
-            if (!String.IsNullOrEmpty(ValidateModel()))
+            if (!ModelState.IsValid)
             {
-                return BadRequest(ValidateModel());
+                return BadRequest(new {
+                    status=false,
+                    message= "Kindly fill in required fields",
+                });
             }
             else
             {
@@ -180,16 +200,15 @@ namespace Hubtel.eCommerce.Cart.Api.Controllers
                     return Ok(new
                     {
                         status = true,
-                        code = 200,
                         message = response ,
-                        cartData = GetItemsAfterAdd(item.PhoneNumber)
+                        data = GetItemsAfterAdd(item.phonenumber)
                     });
                 }
                 else
                 {
                     return BadRequest(new {
                         status=false,
-                        code=400,message=response
+                        data=response
                     });
                 }
 
@@ -197,37 +216,6 @@ namespace Hubtel.eCommerce.Cart.Api.Controllers
         }
 
 
-
-        public string ValidateModel()
-        {
-            string message = string.Join(";", ModelState.Values
-                .SelectMany(x => x.Errors)
-                .Select(x => x.ErrorMessage)
-                );
-            return message;
-
-        }
-
-        //public string ValidateDeleteModel()
-        //{
-        //    string message = string.Join(";", ModelState.Values
-        //        .SelectMany(x => x.Errors)
-        //        .Select(x => x.ErrorMessage)
-        //        );
-        //    return message;
-
-        //}
-        //public string ValidateGetSingleItemModel()
-        //{
-        //    string message = string.Join(";", ModelState.Values
-        //        .SelectMany(x => x.Errors)
-        //        .Select(x => x.ErrorMessage)
-        //        );
-        //    return message;
-
-        //}    
-
-
     }
               
-    }
+}
