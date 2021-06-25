@@ -2,8 +2,11 @@
 **25/6/21 Update**
 
 Minor changes to code base return type/values for endpoint => GetAllCartItems
+
 Added Sentry for the exception handeling.
+
 Sentry Documentation => Sentry.io
+
 Kindly refer to the png image file named (sentry_hubtel.cart_error_log.png)
 
 
