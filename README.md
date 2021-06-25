@@ -1,16 +1,17 @@
 # Hubtel.Cart
-**25/6/21 Update**
+**25/6/21 UPDATE**
 
 Minor changes to code base return type/values for endpoint => GetAllCartItems
 
 Added Sentry for the exception handeling.
 
-Sentry Documentation => Sentry.io
+Sentry Documentation => Sentry.io.
 
-Kindly refer to the png image file named (sentry_hubtel.cart_error_log.png)
+Kindly refer to the png image file named (sentry_hubtel.cart_error_log.png).
 
 
-**LATEST UPDATE DOCUMENTATION**
+
+**PREVIOUS UPDATE DOCUMENTATION**
 Swagger UI Url => https://localhost:44344/swagger/index.html
 (port number may vary on your system)
 
