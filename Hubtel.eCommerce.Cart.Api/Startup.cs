@@ -18,7 +18,7 @@ using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Serialization;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using Microsoft.OpenApi.Models;
-
+using Sentry.AspNetCore;
 
 namespace Hubtel.eCommerce.Cart.Api
 {
@@ -82,7 +82,9 @@ namespace Hubtel.eCommerce.Cart.Api
               .AllowCredentials()
           );
             app.UseHttpsRedirection();
+            app.UseSentryTracing();
             app.UseMvc();
+            
         }
     }
 }

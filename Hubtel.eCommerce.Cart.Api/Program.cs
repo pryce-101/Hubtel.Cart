@@ -7,6 +7,7 @@ using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Sentry.AspNetCore;
 
 namespace Hubtel.eCommerce.Cart.Api
 {
@@ -19,6 +20,8 @@ namespace Hubtel.eCommerce.Cart.Api
 
         public static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
             WebHost.CreateDefaultBuilder(args)
-                .UseStartup<Startup>();
+                .UseStartup<Startup>()
+                .UseSentry();
+            
     }
 }

@@ -9,6 +9,8 @@ using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
 using Npgsql;
+using Microsoft.AspNetCore.Mvc;
+using Sentry;
 
 namespace Hubtel.eCommerce.Cart.Api.Repo
 {
@@ -18,8 +20,7 @@ namespace Hubtel.eCommerce.Cart.Api.Repo
         private readonly string connectionString;
         private readonly string SuccessMessage = "Item Added to Cart Successfully!";
         private readonly string DeleteSuccessMessage = "Item Successfully Deleted from Cart. Thank You.";
-       // private readonly string FailedMessage = "Adding Item to cart Failed. Try Again.";
-       // private readonly string DeleteFailedMessage = "Item Deletion Failed. Try Again.";
+      
 
         private ShoppingCartDBContext _dbContext { get; set; }
         public ShoppingCartRepo(IConfiguration configuration, ShoppingCartDBContext context)
@@ -79,6 +80,7 @@ namespace Hubtel.eCommerce.Cart.Api.Repo
             catch (Exception ex)
             {
                 operationStatus = "";
+                SentrySdk.CaptureException(ex);
             }
 
             return operationStatus;
@@ -121,6 +123,8 @@ namespace Hubtel.eCommerce.Cart.Api.Repo
             catch (Exception ex)
             {
                 operationStatus = "";
+                SentrySdk.CaptureException(ex);
+
             }
 
             return operationStatus;
@@ -138,16 +142,18 @@ namespace Hubtel.eCommerce.Cart.Api.Repo
             }
             catch (Exception ex)
             {
-                throw  ex;
+                //throw  ex;
+                SentrySdk.CaptureException(ex);
+
             }
-            
+
             return cartList;
         }
 
         //GET all cart items
         public async Task<IEnumerable<ItemModel>> GetAllCartItem(ItemFilter filter)
         {
-            IEnumerable<ItemModel> cartList = null;
+            IEnumerable<ItemModel> cartList =null ;
             try
             {
                 using (var connection = new NpgsqlConnection(connectionString))
@@ -183,7 +189,8 @@ namespace Hubtel.eCommerce.Cart.Api.Repo
             }
             catch (Exception ex)
             {
-                throw ex;
+                SentrySdk.CaptureException(ex);
+
             }
 
             return cartList;
@@ -210,9 +217,10 @@ namespace Hubtel.eCommerce.Cart.Api.Repo
             }
             catch (Exception ex)
             {
-                throw ex;
+                SentrySdk.CaptureException(ex);
+
             }
-            
+
             return cartList;
         }
 
@@ -233,7 +241,8 @@ namespace Hubtel.eCommerce.Cart.Api.Repo
             }
             catch (Exception ex)
             {
-                throw ex;
+                SentrySdk.CaptureException(ex);
+
             }
 
             return operationStatus;
@@ -260,7 +269,8 @@ namespace Hubtel.eCommerce.Cart.Api.Repo
             }
             catch (Exception ex)
             {
-                throw ex;
+                SentrySdk.CaptureException(ex);
+
             }
 
             return rows;

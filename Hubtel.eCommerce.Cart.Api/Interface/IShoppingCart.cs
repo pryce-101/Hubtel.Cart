@@ -1,4 +1,5 @@
 ﻿using Hubtel.eCommerce.Cart.Api.Models;
+using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,8 +13,7 @@ namespace Hubtel.eCommerce.Cart.Api
         string AddItemToCartEF(ItemModel item);
         string DeleteCartItem(DeleteItemModel item);
         ItemModel GetCartItem(GetSingleItemModel item);
-        Task<IEnumerable<ItemModel>> GetAllCartItem(ItemFilter filter); 
+        Task<IEnumerable<ItemModel>> GetAllCartItem(ItemFilter filter);
         IEnumerable<ItemModel> GetItemsAfterAdd(string phone); 
-        //string GetSingleItemValidation(int itemID, string phoneNum);
     }
 }

@@ -107,13 +107,13 @@ namespace Hubtel.eCommerce.Cart.Api.Controllers
 
         //GET all cart items (list)
         [HttpGet, Route("GetAllCartItems")]
-        public async Task<IEnumerable<ItemModel>> GetAllCartItems([FromQuery]ItemFilter item)
+        public async Task<ActionResult<IEnumerable<ItemModel>>> GetAllCartItems([FromQuery]ItemFilter item)
         {
             IEnumerable<ItemModel> allCartItems = null;
 
             if (!ModelState.IsValid)
             {
-                BadRequest(new {
+               return BadRequest(new {
                     success=false,
                     message= "Kindly provide requested fields"
                 });
@@ -121,13 +121,28 @@ namespace Hubtel.eCommerce.Cart.Api.Controllers
             else
             {
                 allCartItems = await _shoppingCart.GetAllCartItem(item);
-               
+                if (allCartItems.Count() > 0)
+                {
+
+                   return Ok(new
+                    {
+                        success = true,
+                        message= "Search Successful.",
+                        data = allCartItems
+                    });
+                }
+                else
+                {
+                   return NotFound(new
+                    {
+                        success = false,
+                        message = "Search Not Found",
+                        data = allCartItems
+                    });
+                }
             }
 
-            return  allCartItems;
         }
-
-
 
         //GET single Cart Item
         [HttpGet, Route("GetSingleCartItem")]
@@ -149,10 +164,10 @@ namespace Hubtel.eCommerce.Cart.Api.Controllers
 
             if (cartItem == null)
             {
-                return BadRequest(new
+                return NotFound(new
                 {
                     status = false,
-                    message = "Item not found in cart. Check item details",
+                    message = "Item not found in cart. Check search details",
                     data = cartItem
                 });
             }
@@ -200,7 +215,7 @@ namespace Hubtel.eCommerce.Cart.Api.Controllers
                     return Ok(new
                     {
                         status = true,
-                        message = response ,
+                        message = response,
                         data = GetItemsAfterAdd(item.phonenumber)
                     });
                 }
